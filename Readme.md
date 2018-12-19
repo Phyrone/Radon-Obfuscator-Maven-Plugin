@@ -8,16 +8,16 @@
 ```xml 
 <pluginRepositories>
     <pluginRepository>
-        <id>jitpack.io</id>
-        <url>https://jitpack.io</url>
+        <id>phyrone.plugins</id>
+        <url>http://maven.phyrone.de/artifactory/plugin/</url>
     </pluginRepository>
 </pluginRepositories>
 ```
 ```xml
 <plugin>
-    <groupId>com.github.phyrone</groupId>
-    <artifactId>Radon-Obfuscator-Maven-Plugin</artifactId>
-    <version>${plugin.version}</version>
+    <groupId>de.phyrone</groupId>
+    <artifactId>radon-obfuscator-maven-plugin</artifactId>
+    <version>1.0-SNAPSHOT</version>
     <executions>
         <execution>
             <phase>package</phase>
