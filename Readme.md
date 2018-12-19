@@ -6,12 +6,12 @@
 - Import Prepared Radonconfig
 ## How to Use
 ```xml 
-<repositories>
-    <repository>
+<pluginRepositories>
+    <pluginRepository>
         <id>jitpack.io</id>
         <url>https://jitpack.io</url>
-    </repository>
-</repositories>
+    </pluginRepository>
+</pluginRepositories>
 ```
 ```xml
 <plugin>
