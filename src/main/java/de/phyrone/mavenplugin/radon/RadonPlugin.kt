@@ -92,7 +92,7 @@ class RadonPlugin : AbstractMojo() {
         }
         config = if (radonConfig.equals("none", true) || !File(radonConfig).exists()) {
             log.info("No Radon Config Found -> Use Default")
-            config.from.yaml.string(defaultConfig)
+            config.from.yaml.string(defaultConfig.replace("%package%", (project.groupId + "." + project.artifactId).replace(".", "/")))
         } else {
             config.from.yaml.file(radonConfig)
         }
@@ -228,10 +228,11 @@ enum class ConfigurationSettings private constructor(val value: String) {
     DICTIONARY("Dictionary"),
     TRASH_CLASSES("TrashClasses")
 }
+
 val defaultConfig = """
 Renamer:
   Enabled: true
-  Repackage: obfuscated
+  Repackage: %package%
   AdaptResources:
     - META-INF/MANIFEST.MF
 StringEncryption:
