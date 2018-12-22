@@ -17,7 +17,7 @@
 <plugin>
     <groupId>de.phyrone</groupId>
     <artifactId>radon-obfuscator-maven-plugin</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.2-SNAPSHOT</version>
     <executions>
         <execution>
             <phase>package</phase>
