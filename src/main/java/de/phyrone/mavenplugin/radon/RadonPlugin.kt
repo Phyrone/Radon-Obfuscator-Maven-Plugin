@@ -156,6 +156,7 @@ class RadonPlugin : AbstractMojo() {
             radonTmpConfig.deleteRecursively()
         }
         if (result != 0) {
+            errorListener.join(5000)
             throw MojoFailureException("Radon Failed")
         }
         log.info("Radon Finish!")
@@ -180,8 +181,8 @@ class RadonPlugin : AbstractMojo() {
                     log.info("Thanks to Storyyeller (https://github.com/Storyyeller/jrt-extractor)")
                     log.debug("TempRtJarPath: " + generatedRtFile.absolutePath)
                     JRTExtractor.main(generatedRtFile, log)
-                    ret.add(generatedRtFile)
                 }
+                ret.add(generatedRtFile)
             }
         }
         return ret
