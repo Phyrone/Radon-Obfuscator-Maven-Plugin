@@ -137,6 +137,8 @@ class RadonPlugin : AbstractMojo() {
         log.debug("RadonCommand: $commandLine")
         val process = Runtime.getRuntime().exec(commandLine, arrayOf(), rfile.parentFile)
         log.info("Radon Started!")
+        log.debug("Start Log Listener")
+
         val logListener = Thread({
             val output = Scanner(process.inputStream)
             while (output.hasNextLine()) {
@@ -150,7 +152,7 @@ class RadonPlugin : AbstractMojo() {
                 log.warn("RADON[ERROR]: " + output.nextLine())
             }
         }, "RadonLogListener")
-        logListener.start()
+        errorListener.start()
         val result = process.waitFor()
         if (!keepTempConfig) {
             radonTmpConfig.deleteRecursively()
