@@ -140,7 +140,14 @@ class RadonPlugin : AbstractMojo() {
         val logListener = Thread({
             val output = Scanner(process.inputStream)
             while (output.hasNextLine()) {
-                log.debug("RADON: " + output.nextLine())
+                log.debug("RADON[INFO]: " + output.nextLine())
+            }
+        }, "RadonLogListener")
+        logListener.start()
+        val errorListener = Thread({
+            val output = Scanner(process.errorStream)
+            while (output.hasNextLine()) {
+                log.warn("RADON[ERROR]: " + output.nextLine())
             }
         }, "RadonLogListener")
         logListener.start()
