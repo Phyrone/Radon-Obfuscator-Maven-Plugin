@@ -67,7 +67,8 @@ class RadonPlugin : AbstractMojo() {
 
     @Parameter(defaultValue = "false")
     private var skipCreateJava9UpRtJAR: Boolean = false
-
+    @Parameter(defaultValue = "false")
+    private var skip: Boolean = false
     @Parameter
     private var javaHome: String = System.getProperty("java.home")
 
@@ -79,6 +80,10 @@ class RadonPlugin : AbstractMojo() {
         log.info(fancySpacer.repeat(fancySpacerTimes))
         log.info(fancySpacer.repeat(nameSpacers / 2) + fancyName + fancySpacer.repeat(nameSpacers / 2))
         log.info(fancySpacer.repeat(fancySpacerTimes))
+        if (skip) {
+            log.info("Skipped!")
+            return
+        }
         log.info("Project: " + project.groupId + ":" + project.artifactId + ":" + project.version)
         val rfile = File(radonFolder, "Radon-Program.jar")
         log.info("File: $radonFolder")
