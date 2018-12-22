@@ -16,8 +16,12 @@ import java.net.URL
 import java.nio.file.Files
 import java.util.*
 import kotlin.collections.HashSet
-import org.eclipse.aether.repository.RemoteRepository
-import kotlin.collections.ArrayList
+import org.apache.maven.project.DefaultProjectBuildingRequest
+import org.apache.maven.execution.MavenSession
+import org.apache.maven.plugins.annotations.Component
+import org.apache.maven.shared.dependency.graph.DependencyGraphBuilder
+import org.apache.maven.artifact.resolver.filter.ExcludesArtifactFilter
+import org.apache.maven.shared.dependency.graph.traversal.CollectingDependencyNodeVisitor
 
 
 const val fancySpacerTimes = 64
@@ -40,17 +44,19 @@ class RadonPlugin : AbstractMojo() {
 
     @Parameter(defaultValue = "\${project}", required = true, readonly = true)
     private lateinit var project: MavenProject
-    @Parameter(defaultValue = "https://github.com/ItzSomebody/Radon/releases/download/1.0.4/Radon-Program.jar", required = true, readonly = true)
+    @Parameter(defaultValue = "\${session}", readonly = true, required = true)
+    private lateinit var session: MavenSession
+    @Parameter(defaultValue = "https://github.com/ItzSomebody/Radon/releases/download/1.0.4/Radon-Program.jar")
     private lateinit var radonurl: String
-    @Parameter(defaultValue = "\${project.basedir}/radon/Radon-Program.jar", required = true, readonly = true)
-    private lateinit var radonfile: String
+    @Parameter(defaultValue = "\${project.basedir}/radon/", required = true)
+    private lateinit var radonFolder: String
 
-    @Parameter(defaultValue = "java -jar $radonfilePlaceholder --config $radonConfigPlaceholder", required = true, readonly = true)
+    @Parameter(defaultValue = "java -jar $radonfilePlaceholder --config $radonConfigPlaceholder", required = true)
     private lateinit var radonCmd: String
 
-    @Parameter(defaultValue = "none", required = false, readonly = true)
+    @Parameter(defaultValue = "none", required = false)
     private lateinit var radonConfig: String
-    @Parameter(defaultValue = "false", required = false, readonly = true)
+    @Parameter(defaultValue = "false", required = false)
     private var keepTempConfig: Boolean = false
     @Parameter(defaultValue = "\${project.basedir}/target/\${project.build.finalName}.jar", required = true)
     lateinit var inputJar: String
@@ -65,13 +71,17 @@ class RadonPlugin : AbstractMojo() {
     @Parameter
     private var javaHome: String = System.getProperty("java.home")
 
+
+    @Component(hint = "default")
+    private lateinit var dependencyGraphBuilder: DependencyGraphBuilder
+
     override fun execute() {
         log.info(fancySpacer.repeat(fancySpacerTimes))
         log.info(fancySpacer.repeat(nameSpacers / 2) + fancyName + fancySpacer.repeat(nameSpacers / 2))
         log.info(fancySpacer.repeat(fancySpacerTimes))
         log.info("Project: " + project.groupId + ":" + project.artifactId + ":" + project.version)
-        val rfile = File(radonfile)
-        log.info("File: $radonfile")
+        val rfile = File(radonFolder, "Radon-Program.jar")
+        log.info("File: $radonFolder")
         /* Download Radon if not exists */
         if (!rfile.parentFile.exists())
             rfile.parentFile.mkdirs()
@@ -96,6 +106,7 @@ class RadonPlugin : AbstractMojo() {
         } else {
             config.from.yaml.file(radonConfig)
         }
+        log.debug("Resolve Pom Dependencies")
         val libs = getDependencyFiles()
         if (!skipAddSystemJARs) {
             libs.addAll(getSysLibrarays())
@@ -151,13 +162,14 @@ class RadonPlugin : AbstractMojo() {
             ret.add(rtJarFile)
         } else {
             if (!skipCreateJava9UpRtJAR) {
-                val tempFile = File.createTempFile("RT-LIBS", ".jar")
-                log.warn("rt.jar not found -> Extracting")
-                log.info("Thanks to Storyyeller (https://github.com/Storyyeller/jrt-extractor)")
-                log.debug("TempRtJarPath: " + tempFile.absolutePath)
-                JRTExtractor.main(tempFile, log)
-                ret.add(tempFile)
-                tempFile.deleteOnExit()
+                val generatedRtFile = File(radonFolder, "RT.jar")
+                if (!generatedRtFile.exists()) {
+                    log.warn("rt.jar not found -> Extracting")
+                    log.info("Thanks to Storyyeller (https://github.com/Storyyeller/jrt-extractor)")
+                    log.debug("TempRtJarPath: " + generatedRtFile.absolutePath)
+                    JRTExtractor.main(generatedRtFile, log)
+                    ret.add(generatedRtFile)
+                }
             }
         }
         return ret
@@ -165,22 +177,42 @@ class RadonPlugin : AbstractMojo() {
 
     private fun getDependencyFiles(): HashSet<File> {
         val ret = HashSet<File>()
-        val repos = ArrayList<RemoteRepository>()
-        project.repositories.forEach {
-            repos.add(RemoteRepository.Builder(it.id, "default", it.url).build())
-        }
-        val resolver = MavenResolver(
-                repositroys = repos
-        )
-        log.debug("Dependency's")
-        project.dependencies.forEach {
-            log.debug("     - " + it.groupId + ":" + it.artifactId + ":" + it.version)
-            val res = resolver.resolveArtifactDependencys(dependencyToArtifact(it))
-            res.forEach { res ->
-                val resultFile = resolver.resolveArtifactToFile(res.artifact)
-                ret.add(resultFile)
+        /*val repos = ArrayList<RemoteRepository>()
+         project.repositories.forEach {
+             repos.add(RemoteRepository.Builder(it.id, "default", it.url).build())
+         }
+         val resolver = MavenResolver(
+                 repositroys = repos
+         )
+         log.debug("Dependency's")
+         project.dependencies.forEach {
+             log.debug("     - " + it.groupId + ":" + it.artifactId + ":" + it.version)
+             val res = resolver.resolveArtifactDependencies(dependencyToArtifact(it))
+             res.forEach { res ->
+                 val resultFile = resolver.resolveArtifactToFile(res.artifact)
+                 ret.add(resultFile)
+             }
+         }*/
+        val artifactFilter = ExcludesArtifactFilter(listOf())
+        val buildingRequest = DefaultProjectBuildingRequest(session.projectBuildingRequest)
+        buildingRequest.project = project
+        try {
+            val depenGraphRootNode = dependencyGraphBuilder.buildDependencyGraph(buildingRequest, artifactFilter)
+            val visitor = CollectingDependencyNodeVisitor()
+            depenGraphRootNode.accept(visitor)
+            val children = visitor.nodes
+
+            log.debug("Dependencies :")
+            for (node in children) {
+                val artifact = node.artifact
+                log.debug("     - ${artifact.groupId}:${artifact.artifactId}:${artifact.version}")
+                ret.add(artifact.file)
+
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
+
         return ret
     }
 

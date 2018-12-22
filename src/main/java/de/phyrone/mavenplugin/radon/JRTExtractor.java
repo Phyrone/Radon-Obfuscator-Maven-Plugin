@@ -1,4 +1,4 @@
-package de.phyrone.mavenplugin.radon;// Copyright 2017 Robert Grosse
+// Copyright 2017 Robert Grosse
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@ package de.phyrone.mavenplugin.radon;// Copyright 2017 Robert Grosse
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
+package de.phyrone.mavenplugin.radon;
 import org.apache.maven.plugin.logging.Log;
 
 import java.io.File;
@@ -32,7 +32,6 @@ public class JRTExtractor {
                 if (!Files.isRegularFile(p)) {
                     return;
                 }
-                logger.debug("JarToRt: " + p.toUri().toASCIIString());
                 try {
                     byte[] data = Files.readAllBytes(p);
 
